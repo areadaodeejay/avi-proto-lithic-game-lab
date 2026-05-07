@@ -1,9 +1,16 @@
 import random
 from midiutil import MIDIFile
 
+try:
+    from midi2audio import FluidSynth
+    HAS_FLUIDSYNTH = True
+except ImportError:
+    HAS_FLUIDSYNTH = False
+
 # ===============================================
 # MIDI 808 + Ring Mod + TB-303 Style Engine
 # For Frequency Warriors & Proto-Lithic Game Lab
+# Now with WAV export support!
 # ===============================================
 
 class Midi808303Engine:
@@ -61,8 +68,8 @@ class Midi808303Engine:
             midi.addNote(self.track, self.channel_lead, ring_tone, time, 0.25, 65)
             time += 0.25
     
-    def generate_track(self, filename="proto_lithic_808_303.mid", bars=8):
-        """Generate full MIDI track"""
+    def generate_track(self, filename="proto_lithic_808_303.mid", bars=8, export_wav=False):
+        """Generate full MIDI track. Optionally export to WAV."""
         midi = MIDIFile(1)
         midi.addTempo(self.track, 0, self.bpm)
         
@@ -78,8 +85,32 @@ class Midi808303Engine:
         with open(filename, "wb") as output_file:
             midi.writeFile(output_file)
         
-        print(f"✅ Generated: {filename} | BPM: {self.bpm} | Bars: {bars}")
+        print(f"✅ Generated MIDI: {filename} | BPM: {self.bpm} | Bars: {bars}")
+        
+        if export_wav:
+            self.export_to_wav(filename)
+        
         return filename
+
+    def export_to_wav(self, midi_filename, output_wav=None):
+        """Export MIDI to WAV using FluidSynth (if available)"""
+        if not HAS_FLUIDSYNTH:
+            print("⚠️  midi2audio / FluidSynth not installed.")
+            print("   Install with: pip install midi2audio")
+            print("   Also need FluidSynth installed on your system.")
+            return None
+        
+        if output_wav is None:
+            output_wav = midi_filename.replace('.mid', '.wav')
+        
+        try:
+            fs = FluidSynth()
+            fs.midi_to_audio(midi_filename, output_wav)
+            print(f"✅ Exported WAV: {output_wav}")
+            return output_wav
+        except Exception as e:
+            print(f"❌ Error exporting WAV: {e}")
+            return None
 
 
 # ======================
@@ -87,5 +118,6 @@ class Midi808303Engine:
 # ======================
 if __name__ == "__main__":
     engine = Midi808303Engine(bpm=138)
-    engine.generate_track("frequency_warriors_808_303.mid", bars=8)
-    print("MIDI 808 + 303 Ring-Mod engine ready for game integration!")
+    midi_file = engine.generate_track("frequency_warriors_808_303.mid", bars=8, export_wav=True)
+    print("MIDI 808 + 303 Ring-Mod engine with WAV export ready for game integration!")
+    print("Tip: pip install midi2audio for WAV support")
